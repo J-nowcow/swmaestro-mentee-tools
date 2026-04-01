@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-from rag.chain import ask, semantic_search, build_sources
+from rag.chain import ask, semantic_search
 from rag.feedback import log_feedback
 from rag.cache import load_popular_cache
 
