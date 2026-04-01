@@ -35,6 +35,11 @@ with st.sidebar:
     st.markdown("- [연수생 FAQ](https://swmaestro.ai/sw/bbs/B0000004/list.do?menuNo=200021)")
     st.markdown("- [코딩테스트 FAQ](https://swmaestro.ai/sw/bbs/B0000021/list.do?menuNo=200090)")
     st.divider()
+    st.markdown("**문의**")
+    st.markdown("02-6933-0701~5")
+    st.markdown("swmaestro@fkii.org")
+    st.caption("서울특별시 마포구 마포대로 89\n포스트타워 7층, 12층")
+    st.divider()
     st.caption("이 챗봇은 공식 사이트 정보 기반이며,\n최신 정보와 다를 수 있습니다.")
 
     if st.button("대화 초기화", use_container_width=True):
