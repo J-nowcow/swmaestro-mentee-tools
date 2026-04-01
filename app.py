@@ -114,6 +114,20 @@ with tab_chat:
                         )
                         msg["feedback_given"] = True
                         st.rerun()
+                with c3:
+                    if st.button("✏️ 의견 남기기", key=f"comment_{idx}"):
+                        msg["show_comment"] = True
+                        st.rerun()
+            if msg["role"] == "assistant" and msg.get("show_comment") and not msg.get("comment_sent"):
+                comment = st.text_input("의견을 남겨주세요", key=f"comment_text_{idx}")
+                if comment and st.button("전송", key=f"comment_send_{idx}"):
+                    log_feedback(
+                        st.session_state.messages[idx - 1]["content"],
+                        msg["content"], f"comment: {comment}", st.session_state.session_id
+                    )
+                    msg["comment_sent"] = True
+                    st.success("의견 감사합니다!")
+                    st.rerun()
 
     # 새 질문 처리
     new_question = None
