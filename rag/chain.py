@@ -105,12 +105,21 @@ def _call_gemini(messages: list[dict], status_callback=None) -> tuple[str, bool]
     return "현재 요청이 많아 답변을 생성할 수 없습니다. 잠시 후 다시 시도해주세요.", True
 
 
-def log_query(question: str, answer: str, session_id: str = ""):
-    """질문/답변 로그 기록"""
+def log_query(question: str, answer: str, session_id: str = "", cached: bool = False):
+    """질문/답변 로그 기록 (Supabase 우선, 폴백으로 Google Sheets)"""
+    from rag import db
     kst = timezone(timedelta(hours=9))
     ts = datetime.now(kst).strftime("%Y-%m-%d %H:%M:%S")
     print(f"[LOG] {ts} | sid={session_id} | Q: {question[:80]}")
 
+    db.insert("logs", {
+        "session_id": session_id,
+        "question": question,
+        "answer": answer,
+        "cached": cached,
+    })
+
+    # Google Sheets 폴백
     webhook_url = os.getenv("LOG_WEBHOOK_URL")
     if webhook_url:
         try:
