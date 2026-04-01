@@ -105,19 +105,19 @@ def _call_gemini(messages: list[dict], status_callback=None) -> tuple[str, bool]
     return "현재 요청이 많아 답변을 생성할 수 없습니다. 잠시 후 다시 시도해주세요.", True
 
 
-def log_query(question: str, answer: str):
+def log_query(question: str, answer: str, session_id: str = ""):
     """질문/답변 로그 기록"""
     kst = timezone(timedelta(hours=9))
     ts = datetime.now(kst).strftime("%Y-%m-%d %H:%M:%S")
-    print(f"[LOG] {ts} | Q: {question[:80]}")
+    print(f"[LOG] {ts} | sid={session_id} | Q: {question[:80]}")
 
-    # Google Sheets 웹훅 (설정된 경우)
     webhook_url = os.getenv("LOG_WEBHOOK_URL")
     if webhook_url:
         try:
             req.post(webhook_url, json={
                 "type": "query",
                 "timestamp": ts,
+                "session_id": session_id,
                 "question": question,
                 "answer": answer,
                 "answer_length": len(answer),
@@ -164,7 +164,7 @@ def rewrite_query(question: str, chat_history: list[dict]) -> str:
     return question
 
 
-def ask(question: str, chat_history: list[dict] | None = None, status_callback=None) -> tuple[str, bool]:
+def ask(question: str, chat_history: list[dict] | None = None, status_callback=None, session_id: str = "") -> tuple[str, bool]:
     """질문에 대한 답변 생성
 
     Returns:
@@ -178,7 +178,7 @@ def ask(question: str, chat_history: list[dict] | None = None, status_callback=N
     # 1) 동일 질문 캐시
     cached = cache.get_exact(search_question)
     if cached:
-        log_query(question, cached)
+        log_query(question, cached, session_id)
         return cached, False
 
     # 2) 임베딩 생성 (유사 질문 캐시 + 검색에 모두 사용)
@@ -187,7 +187,7 @@ def ask(question: str, chat_history: list[dict] | None = None, status_callback=N
     # 3) 유사 질문 캐시
     cached = cache.get_similar(query_vector)
     if cached:
-        log_query(question, cached)
+        log_query(question, cached, session_id)
         return cached, False
 
     # 4) 벡터 검색
@@ -224,5 +224,5 @@ def ask(question: str, chat_history: list[dict] | None = None, status_callback=N
     if "요청이 많아" not in answer:
         cache.put(question, answer, query_vector)
 
-    log_query(question, answer)
+    log_query(question, answer, session_id)
     return answer, used_fallback

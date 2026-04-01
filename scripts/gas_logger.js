@@ -2,8 +2,8 @@
  * SW마에스트로 Q&A 챗봇 로그 수집기 (Google Apps Script)
  *
  * 시트 구조:
- * - 시트1 (queries): timestamp | question | answer | answer_length
- * - feedback: timestamp | question | answer | feedback_type
+ * - 시트1 (queries): timestamp | session_id | question | answer | answer_length
+ * - feedback: timestamp | session_id | question | answer | feedback_type
  *
  * 설정 방법:
  * 1. Google Sheets에서 시트1 헤더: timestamp | question | answer | answer_length
@@ -22,6 +22,7 @@ function doPost(e) {
       var sheet = ss.getSheetByName("feedback") || ss.insertSheet("feedback");
       sheet.appendRow([
         data.timestamp || new Date().toISOString(),
+        data.session_id || "",
         data.question || "",
         data.answer || "",
         data.feedback_type || "",
@@ -30,6 +31,7 @@ function doPost(e) {
       var sheet = ss.getSheets()[0];
       sheet.appendRow([
         data.timestamp || new Date().toISOString(),
+        data.session_id || "",
         data.question || "",
         data.answer || "",
         data.answer_length || 0,

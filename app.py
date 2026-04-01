@@ -57,6 +57,9 @@ if "messages" not in st.session_state:
     st.session_state.messages = []
 if "pending_question" not in st.session_state:
     st.session_state.pending_question = None
+if "session_id" not in st.session_state:
+    import uuid
+    st.session_state.session_id = str(uuid.uuid4())[:8]
 if "popular_items" not in st.session_state:
     st.session_state.popular_items = load_popular_cache()
 
@@ -99,7 +102,7 @@ with tab_chat:
                     if st.button("👍", key=f"up_{idx}"):
                         log_feedback(
                             st.session_state.messages[idx - 1]["content"],
-                            msg["content"], "helpful"
+                            msg["content"], "helpful", st.session_state.session_id
                         )
                         msg["feedback_given"] = True
                         st.rerun()
@@ -107,7 +110,7 @@ with tab_chat:
                     if st.button("👎", key=f"down_{idx}"):
                         log_feedback(
                             st.session_state.messages[idx - 1]["content"],
-                            msg["content"], "unhelpful"
+                            msg["content"], "unhelpful", st.session_state.session_id
                         )
                         msg["feedback_given"] = True
                         st.rerun()
@@ -133,7 +136,7 @@ with tab_chat:
                 def on_fallback(msg):
                     status_placeholder.warning(msg)
 
-                answer, used_fallback = ask(new_question, chat_history=history, status_callback=on_fallback)
+                answer, used_fallback = ask(new_question, chat_history=history, status_callback=on_fallback, session_id=st.session_state.session_id)
 
             status_placeholder.empty()
             if used_fallback:
