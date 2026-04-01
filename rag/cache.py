@@ -1,6 +1,11 @@
-"""응답 캐싱 (동일 질문 + 유사 질문)"""
+"""응답 캐싱 (동일 질문 + 유사 질문 + 인기 질문 사전 로드)"""
+import json
 import time
+from pathlib import Path
+
 import numpy as np
+
+POPULAR_CACHE_PATH = "data/popular_cache.json"
 
 # 캐시: {질문: (답변, 임베딩벡터, 타임스탬프)}
 _cache: dict[str, tuple[str, list[float], float]] = {}
@@ -63,3 +68,22 @@ def put(question: str, answer: str, query_vector: list[float]):
     if len(_cache) > 200:
         oldest_key = min(_cache, key=lambda k: _cache[k][2])
         del _cache[oldest_key]
+
+
+def load_popular_cache() -> list[dict]:
+    """인기 질문 사전 캐시를 로드하고 메모리 캐시에 등록"""
+    path = Path(POPULAR_CACHE_PATH)
+    if not path.exists():
+        return []
+
+    with open(path, "r", encoding="utf-8") as f:
+        items = json.load(f)
+
+    # 메모리 캐시에도 등록 (TTL 무한 = 먼 미래 타임스탬프)
+    far_future = time.time() + 86400 * 365
+    for item in items:
+        key = item["question"].strip().lower()
+        _cache[key] = (item["answer"], [], far_future)
+
+    print(f"[CACHE] 인기 질문 {len(items)}개 로드 완료")
+    return items

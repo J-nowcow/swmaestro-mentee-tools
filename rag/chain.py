@@ -6,8 +6,7 @@ from datetime import datetime, timezone, timedelta
 
 import requests as req
 
-from rag.retriever import retrieve
-from rag.embedder import embed_query
+from rag.embedder import embed_query, search
 from rag import cache
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -117,6 +116,7 @@ def log_query(question: str, answer: str):
     if webhook_url:
         try:
             req.post(webhook_url, json={
+                "type": "query",
                 "timestamp": ts,
                 "question": question,
                 "answer": answer,
@@ -126,20 +126,63 @@ def log_query(question: str, answer: str):
             pass
 
 
+def semantic_search(query: str, top_k: int = 5) -> list[dict]:
+    """LLM 없이 벡터 검색만 수행 (시맨틱 서치 탭용)"""
+    query_vector = embed_query(query)
+    return search(query_vector, top_k=top_k)
+
+
+def rewrite_query(question: str, chat_history: list[dict]) -> str:
+    """이전 대화를 기반으로 질문 재작성 (멀티턴 개선)"""
+    recent_user_msgs = [m["content"] for m in chat_history[-6:] if m["role"] == "user"]
+    if len(recent_user_msgs) < 1:
+        return question
+
+    api_key = os.getenv("GOOGLE_API_KEY")
+    messages = [{
+        "role": "user",
+        "parts": [{"text": (
+            f"이전 대화: {' → '.join(recent_user_msgs)}\n"
+            f"현재 질문: {question}\n\n"
+            "현재 질문을 이전 대화 맥락을 포함하여 완전한 질문으로 다시 쓰세요. "
+            "다시 쓴 질문만 출력하세요."
+        )}]
+    }]
+
+    try:
+        resp = req.post(
+            f"{BASE_URL}/gemini-2.0-flash-lite:generateContent?key={api_key}",
+            json={"contents": messages, "generationConfig": {"temperature": 0.1}},
+            verify=False, timeout=10,
+        )
+        if resp.status_code == 200:
+            rewritten = resp.json()["candidates"][0]["content"]["parts"][0]["text"].strip()
+            print(f"[REWRITE] {question[:40]} → {rewritten[:40]}")
+            return rewritten
+    except Exception:
+        pass
+    return question
+
+
 def ask(question: str, chat_history: list[dict] | None = None, status_callback=None) -> tuple[str, bool]:
     """질문에 대한 답변 생성
 
     Returns:
         (답변 텍스트, 폴백 사용 여부)
     """
+    # 0) 멀티턴 질문 재작성
+    search_question = question
+    if chat_history and len(chat_history) >= 2:
+        search_question = rewrite_query(question, chat_history)
+
     # 1) 동일 질문 캐시
-    cached = cache.get_exact(question)
+    cached = cache.get_exact(search_question)
     if cached:
         log_query(question, cached)
         return cached, False
 
     # 2) 임베딩 생성 (유사 질문 캐시 + 검색에 모두 사용)
-    query_vector = embed_query(question)
+    query_vector = embed_query(search_question)
 
     # 3) 유사 질문 캐시
     cached = cache.get_similar(query_vector)
@@ -148,7 +191,6 @@ def ask(question: str, chat_history: list[dict] | None = None, status_callback=N
         return cached, False
 
     # 4) 벡터 검색
-    from rag.embedder import search
     results = search(query_vector, top_k=5)
 
     if not results:
