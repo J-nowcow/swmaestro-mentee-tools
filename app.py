@@ -88,9 +88,18 @@ if new_question:
         st.markdown(new_question)
 
     with st.chat_message("assistant"):
+        status_placeholder = st.empty()
         with st.spinner("답변을 찾고 있어요..."):
             history = st.session_state.messages[:-1] if len(st.session_state.messages) > 1 else None
-            answer = ask(new_question, chat_history=history)
+
+            def on_fallback(msg):
+                status_placeholder.warning(msg)
+
+            answer, used_fallback = ask(new_question, chat_history=history, status_callback=on_fallback)
+
+        status_placeholder.empty()
+        if used_fallback:
+            st.info("요청이 많아 대체 모델로 답변했습니다. 답변 품질이 다소 다를 수 있습니다.")
         st.markdown(answer)
 
     st.session_state.messages.append({"role": "assistant", "content": answer})

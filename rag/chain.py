@@ -39,8 +39,12 @@ def build_context(results: list[dict]) -> str:
     return "\n---\n".join(parts)
 
 
-def _call_gemini(messages: list[dict]) -> str:
-    """모델 폴백 포함 Gemini REST API 호출"""
+def _call_gemini(messages: list[dict], status_callback=None) -> tuple[str, bool]:
+    """모델 폴백 포함 Gemini REST API 호출
+
+    Returns:
+        (답변 텍스트, 폴백 사용 여부)
+    """
     api_key = os.getenv("GOOGLE_API_KEY")
     if not api_key:
         raise ValueError("GOOGLE_API_KEY 환경변수가 설정되지 않았습니다.")
@@ -51,8 +55,8 @@ def _call_gemini(messages: list[dict]) -> str:
         "generationConfig": {"temperature": 0.3},
     }
 
-    last_error = None
-    for model in FALLBACK_MODELS:
+    used_fallback = False
+    for i, model in enumerate(FALLBACK_MODELS):
         url = f"{BASE_URL}/{model}:generateContent?key={api_key}"
 
         for attempt in range(2):
@@ -66,13 +70,15 @@ def _call_gemini(messages: list[dict]) -> str:
                 data = resp.json()
                 if "candidates" in data:
                     print(f"[LLM] model={model} ok")
-                    return data["candidates"][0]["content"]["parts"][0]["text"]
-            last_error = resp.text
+                    return data["candidates"][0]["content"]["parts"][0]["text"], used_fallback
             break
 
         print(f"[LLM] model={model} rate limited, trying next...")
+        used_fallback = True
+        if status_callback:
+            status_callback(f"요청이 많아 대체 모델({FALLBACK_MODELS[min(i+1, len(FALLBACK_MODELS)-1)]})로 시도 중...")
 
-    return "현재 요청이 많아 답변을 생성할 수 없습니다. 잠시 후 다시 시도해주세요."
+    return "현재 요청이 많아 답변을 생성할 수 없습니다. 잠시 후 다시 시도해주세요.", True
 
 
 def log_query(question: str, answer: str):
@@ -95,11 +101,16 @@ def log_query(question: str, answer: str):
             pass
 
 
-def ask(question: str, chat_history: list[dict] | None = None) -> str:
+def ask(question: str, chat_history: list[dict] | None = None, status_callback=None) -> tuple[str, bool]:
+    """질문에 대한 답변 생성
+
+    Returns:
+        (답변 텍스트, 폴백 사용 여부)
+    """
     results = retrieve(question, top_k=5)
 
     if not results:
-        return "관련 정보를 찾을 수 없습니다. 공식 사이트(https://swmaestro.ai)를 확인해주세요."
+        return "관련 정보를 찾을 수 없습니다. 공식 사이트(https://swmaestro.ai)를 확인해주세요.", False
 
     context = build_context(results)
     messages = []
@@ -117,6 +128,6 @@ def ask(question: str, chat_history: list[dict] | None = None) -> str:
 
     messages.append({"role": "user", "parts": [{"text": user_message}]})
 
-    answer = _call_gemini(messages)
+    answer, used_fallback = _call_gemini(messages, status_callback=status_callback)
     log_query(question, answer)
-    return answer
+    return answer, used_fallback
