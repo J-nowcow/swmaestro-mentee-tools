@@ -3,7 +3,7 @@
  *
  * 설정 방법:
  * 1. Google Sheets에서 새 스프레드시트 생성
- * 2. 첫 행에 헤더 입력: timestamp | question | answer_preview | answer_length
+ * 2. 첫 행에 헤더 입력: timestamp | question | answer | answer_length
  * 3. 확장 프로그램 → Apps Script 클릭
  * 4. 이 코드를 붙여넣기
  * 5. 배포 → 새 배포 → 유형: 웹 앱
@@ -22,7 +22,7 @@ function doPost(e) {
     sheet.appendRow([
       data.timestamp || new Date().toISOString(),
       data.question || "",
-      data.answer_preview || "",
+      data.answer || "",
       data.answer_length || 0,
     ]);
 
