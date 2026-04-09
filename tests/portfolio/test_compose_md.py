@@ -90,3 +90,36 @@ def test_compose_renders_score_stars():
     md = compose_result_md(_sample_evaluation(), _sample_questions(), _sample_meta())
     # 3/5 → 3 filled stars
     assert "⭐⭐⭐" in md
+
+
+def test_compose_handles_none_image_count():
+    """metadata.image_count being None should not render as literal 'None'."""
+    md = compose_result_md(
+        _sample_evaluation(),
+        _sample_questions(),
+        {
+            "timestamp": "2026-04-09 15:42 KST",
+            "model_used": "gemini-2.5-flash",
+            "page_count": 12,
+            "image_count": None,
+            "image_truncated": False,
+        },
+    )
+    assert "None (전부 분석 포함)" not in md
+    assert "? (전부 분석 포함)" in md
+
+
+def test_compose_preserves_zero_image_count():
+    """image_count=0 should render as 0 (not '?')."""
+    md = compose_result_md(
+        _sample_evaluation(),
+        _sample_questions(),
+        {
+            "timestamp": "2026-04-09 15:42 KST",
+            "model_used": "gemini-2.5-flash",
+            "page_count": 5,
+            "image_count": 0,
+            "image_truncated": False,
+        },
+    )
+    assert "0 (전부 분석 포함)" in md

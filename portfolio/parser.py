@@ -11,7 +11,7 @@ from pathlib import PurePosixPath
 from PIL import Image
 
 # Notion appends a 32-character hex id to filenames and headings.
-_NOTION_ID_RE = re.compile(r"\s[0-9a-f]{32}")
+_NOTION_ID_RE = re.compile(r"\s[0-9a-f]{32}(?![0-9a-f])")
 
 IMAGE_CAP = 30
 IMAGE_MAX_DIM = 1024
@@ -99,65 +99,66 @@ def parse_notion_zip(zip_bytes: bytes) -> ParsedPortfolio:
     except zipfile.BadZipFile as e:
         raise InvalidZipError(str(e)) from e
 
-    total_uncompressed = sum(info.file_size for info in zf.infolist())
-    if total_uncompressed > UNCOMPRESSED_LIMIT:
-        raise ZipTooLargeError(
-            f"uncompressed size {total_uncompressed} > {UNCOMPRESSED_LIMIT}"
-        )
-
-    md_names: list[str] = []
-    image_names: list[str] = []
-    for info in zf.infolist():
-        if info.is_dir():
-            continue
-        name = info.filename
-        ext = PurePosixPath(name).suffix.lower()
-        if ext == ".md":
-            md_names.append(name)
-        elif ext in SUPPORTED_IMAGE_EXTS:
-            image_names.append(name)
-
-    if not md_names:
-        raise NoMarkdownError("zip contains no .md files")
-
-    md_names.sort()
-    image_names.sort()
-
-    md_chunks: list[str] = []
-    for name in md_names:
-        with zf.open(name) as f:
-            text = f.read().decode("utf-8", errors="replace")
-        md_chunks.append(_strip_notion_ids(text))
-    combined_md = "\n\n".join(md_chunks)
-
-    images: list[ImageData] = []
-    for idx, name in enumerate(image_names[:IMAGE_CAP]):
-        info = zf.getinfo(name)
-        if info.file_size > IMAGE_MAX_BYTES:
-            continue
-        with zf.open(name) as f:
-            raw = f.read()
-        ext = PurePosixPath(name).suffix.lower()
-        mime = SUPPORTED_MIME.get(ext, "application/octet-stream")
-        b64 = _resize_to_base64(raw, mime)
-        if b64 is None:
-            continue
-        images.append(
-            ImageData(
-                filename=PurePosixPath(name).name,
-                mime_type=mime,
-                base64=b64,
-                original_index=idx,
+    with zf:
+        total_uncompressed = sum(info.file_size for info in zf.infolist())
+        if total_uncompressed > UNCOMPRESSED_LIMIT:
+            raise ZipTooLargeError(
+                f"uncompressed size {total_uncompressed} > {UNCOMPRESSED_LIMIT}"
             )
-        )
 
-    return ParsedPortfolio(
-        markdown=combined_md,
-        images=images,
-        stats=PortfolioStats(
-            page_count=len(md_names),
-            image_count=len(image_names),
-            image_truncated=len(image_names) > IMAGE_CAP,
-            total_chars=len(combined_md),
-        ),
-    )
+        md_names: list[str] = []
+        image_names: list[str] = []
+        for info in zf.infolist():
+            if info.is_dir():
+                continue
+            name = info.filename
+            ext = PurePosixPath(name).suffix.lower()
+            if ext == ".md":
+                md_names.append(name)
+            elif ext in SUPPORTED_IMAGE_EXTS:
+                image_names.append(name)
+
+        if not md_names:
+            raise NoMarkdownError("zip contains no .md files")
+
+        md_names.sort()
+        image_names.sort()
+
+        md_chunks: list[str] = []
+        for name in md_names:
+            with zf.open(name) as f:
+                text = f.read().decode("utf-8", errors="replace")
+            md_chunks.append(_strip_notion_ids(text))
+        combined_md = "\n\n".join(md_chunks)
+
+        images: list[ImageData] = []
+        for idx, name in enumerate(image_names[:IMAGE_CAP]):
+            info = zf.getinfo(name)
+            if info.file_size > IMAGE_MAX_BYTES:
+                continue
+            with zf.open(name) as f:
+                raw = f.read()
+            ext = PurePosixPath(name).suffix.lower()
+            mime = SUPPORTED_MIME.get(ext, "application/octet-stream")
+            b64 = _resize_to_base64(raw, mime)
+            if b64 is None:
+                continue
+            images.append(
+                ImageData(
+                    filename=PurePosixPath(name).name,
+                    mime_type=mime,
+                    base64=b64,
+                    original_index=idx,
+                )
+            )
+
+        return ParsedPortfolio(
+            markdown=combined_md,
+            images=images,
+            stats=PortfolioStats(
+                page_count=len(md_names),
+                image_count=len(image_names),
+                image_truncated=len(image_names) > IMAGE_CAP,
+                total_chars=len(combined_md),
+            ),
+        )

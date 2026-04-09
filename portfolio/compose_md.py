@@ -70,8 +70,10 @@ def compose_result_md(
         out.append("")
 
     out.append("## 📌 분석 노트")
-    page_count = metadata.get("page_count", "?")
-    image_count = metadata.get("image_count", "?")
+    _pc = metadata.get("page_count")
+    page_count = "?" if _pc is None else _pc
+    _ic = metadata.get("image_count")
+    image_count = "?" if _ic is None else _ic
     truncated = metadata.get("image_truncated", False)
     image_note = f"{image_count} (첫 30장만 분석)" if truncated else f"{image_count} (전부 분석 포함)"
     out.append(f"- 페이지 수: {page_count}")
