@@ -61,7 +61,7 @@ def _init_state() -> None:
 def _render_sidebar(ip_hash: str) -> None:
     st.sidebar.markdown("## 📋 포트폴리오 코치")
     st.sidebar.markdown(
-        "SW마에스트로 멘토의 평가 철학으로\n포트폴리오를 자동 피드백받기"
+        "SW마에스트로 엑스퍼트의 평가 철학으로\n포트폴리오를 자동 피드백받기"
     )
     st.sidebar.divider()
     st.sidebar.markdown("**사용법**")
@@ -85,7 +85,7 @@ def _render_sidebar(ip_hash: str) -> None:
     st.sidebar.info(
         "이 도구의 **10가지 평가 기준**은 카카오톡 오픈채팅방 "
         "**'소프트웨어 마에스트로 준비방'** 에서\n\n"
-        "**엄지척 재이지(SW마에스트로 15기)** 님이 공유해주신 "
+        "**엄지척 재이지(SW마에스트로 15기 엑스퍼트)** 님이 공유해주신 "
         "포트폴리오 꿀팁을 기반으로 만들어졌습니다.",
         icon="💡",
     )
@@ -215,7 +215,7 @@ def _run_analysis(
 
 def _render_uploader(ip_hash: str) -> None:
     st.markdown("# 📋 포트폴리오 코치")
-    st.markdown("멘토의 10가지 평가 기준으로 자동 피드백을 받아보세요.")
+    st.markdown("엑스퍼트의 10가지 평가 기준으로 자동 피드백을 받아보세요.")
 
     uploaded = st.file_uploader(
         "Notion zip 파일을 끌어다 놓거나 클릭해서 선택 (최대 20MB)",
