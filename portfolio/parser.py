@@ -82,33 +82,65 @@ def _resize_to_base64(raw: bytes, mime_type: str) -> str | None:
     return base64.b64encode(out.getvalue()).decode("ascii")
 
 
-def _unwrap_nested_zip(zip_bytes: bytes) -> bytes:
-    """If the zip contains a single .zip file inside, extract and return its bytes.
+MAX_UNWRAP_DEPTH = 5
 
-    Notion sometimes exports as a double-zipped file:
-    outer.zip → ExportBlock-xxx.zip → actual .md + images.
+
+def _unwrap_nested_zip(zip_bytes: bytes) -> bytes:
+    """Recursively unwrap nested zips until actual content is found.
+
+    Handles arbitrary nesting depth (up to MAX_UNWRAP_DEPTH) where each layer
+    contains a single .zip file inside.
     """
-    try:
-        zf = zipfile.ZipFile(io.BytesIO(zip_bytes))
-    except zipfile.BadZipFile:
+    for _ in range(MAX_UNWRAP_DEPTH):
+        try:
+            zf = zipfile.ZipFile(io.BytesIO(zip_bytes))
+        except zipfile.BadZipFile:
+            return zip_bytes
+
+        entries = [i for i in zf.infolist() if not i.is_dir()]
+        if (
+            len(entries) == 1
+            and PurePosixPath(entries[0].filename).suffix.lower() == ".zip"
+        ):
+            with zf.open(entries[0]) as inner:
+                zip_bytes = inner.read()
+            zf.close()
+            continue
+
+        zf.close()
         return zip_bytes
 
-    entries = [i for i in zf.infolist() if not i.is_dir()]
-    if (
-        len(entries) == 1
-        and PurePosixPath(entries[0].filename).suffix.lower() == ".zip"
-    ):
-        with zf.open(entries[0]) as inner:
-            return inner.read()
-
-    zf.close()
     return zip_bytes
+
+
+def parse_markdown_bytes(md_bytes: bytes, filename: str = "uploaded.md") -> ParsedPortfolio:
+    """Parse a single markdown file (not zipped).
+
+    Args:
+        md_bytes: raw bytes of a .md file.
+        filename: original filename (used for display only).
+
+    Returns:
+        ParsedPortfolio with the markdown text and no images.
+    """
+    text = md_bytes.decode("utf-8", errors="replace")
+    text = _strip_notion_ids(text)
+    return ParsedPortfolio(
+        markdown=text,
+        images=[],
+        stats=PortfolioStats(
+            page_count=1,
+            image_count=0,
+            image_truncated=False,
+            total_chars=len(text),
+        ),
+    )
 
 
 def parse_notion_zip(zip_bytes: bytes) -> ParsedPortfolio:
     """Parse a Notion markdown-export zip.
 
-    - Handles double-zipped Notion exports (zip-in-zip).
+    - Handles arbitrarily nested zips (zip-in-zip-in-zip...).
     - Combines all .md files in alphabetical order.
     - Strips Notion's 32-char hex id suffixes.
     - Extracts up to IMAGE_CAP images, resized to IMAGE_MAX_DIM, base64 encoded.

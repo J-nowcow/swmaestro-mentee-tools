@@ -101,6 +101,46 @@ def test_parse_zip_too_large_raises():
         parse_notion_zip(buf.getvalue())
 
 
+def test_parse_markdown_bytes_directly():
+    """parse_markdown_bytes handles raw .md content."""
+    from portfolio.parser import parse_markdown_bytes
+
+    md = b"# Hello\n\nI am a developer abcdef1234567890abcdef1234567890.\n"
+    result = parse_markdown_bytes(md, "test.md")
+    assert "# Hello" in result.markdown
+    assert result.stats.page_count == 1
+    assert result.stats.image_count == 0
+    # Notion id suffix should also be stripped
+    assert "abcdef1234567890abcdef1234567890" not in result.markdown
+
+
+def test_parse_triple_nested_zip():
+    """Three layers of nesting should be unwrapped."""
+    import io
+    import zipfile
+
+    # innermost: actual md
+    inner_buf = io.BytesIO()
+    with zipfile.ZipFile(inner_buf, "w") as z:
+        z.writestr("Page abcdef1234567890abcdef1234567890.md", "# Deep\n")
+    inner_bytes = inner_buf.getvalue()
+
+    # middle layer
+    mid_buf = io.BytesIO()
+    with zipfile.ZipFile(mid_buf, "w") as z:
+        z.writestr("inner.zip", inner_bytes)
+    mid_bytes = mid_buf.getvalue()
+
+    # outermost
+    outer_buf = io.BytesIO()
+    with zipfile.ZipFile(outer_buf, "w") as z:
+        z.writestr("outer.zip", mid_bytes)
+
+    result = parse_notion_zip(outer_buf.getvalue())
+    assert "# Deep" in result.markdown
+    assert result.stats.page_count == 1
+
+
 def test_parse_handles_nested_zip():
     """Notion sometimes exports as zip-in-zip. Parser should auto-unwrap."""
     import io

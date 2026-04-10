@@ -14,6 +14,7 @@ from portfolio.parser import (
     NoMarkdownError,
     ParsedPortfolio,
     ZipTooLargeError,
+    parse_markdown_bytes,
     parse_notion_zip,
 )
 from portfolio.question_gen import QuestionGenError, generate as generate_questions
@@ -64,14 +65,6 @@ def _render_sidebar(ip_hash: str) -> None:
         "SW마에스트로 엑스퍼트의 평가 철학으로\n포트폴리오를 자동 피드백받기"
     )
     st.sidebar.divider()
-    st.sidebar.markdown("**사용법**")
-    st.sidebar.markdown(
-        "1. Notion 페이지 열기\n"
-        "2. ⋯ 메뉴 → Export\n"
-        "3. **Markdown & CSV** 선택\n"
-        "4. zip 파일 업로드"
-    )
-    st.sidebar.divider()
     st.sidebar.markdown("**오늘의 한도**")
     daily = ratelimit.get_today_status()
     ipst = ratelimit.get_ip_status(ip_hash)
@@ -103,9 +96,15 @@ def _render_sidebar(ip_hash: str) -> None:
     st.sidebar.caption("도움이 되셨다면 ⭐ 스타를 눌러주세요!")
 
 
-def _try_parse_uploaded(zip_bytes: bytes) -> ParsedPortfolio | None:
+def _try_parse_uploaded(file_bytes: bytes, filename: str) -> ParsedPortfolio | None:
+    if filename.lower().endswith(".md"):
+        try:
+            return parse_markdown_bytes(file_bytes, filename)
+        except Exception:
+            st.session_state.pf_error = "마크다운 파일을 읽을 수 없습니다."
+            return None
     try:
-        return parse_notion_zip(zip_bytes)
+        return parse_notion_zip(file_bytes)
     except InvalidZipError:
         st.session_state.pf_error = "zip 파일을 읽을 수 없습니다. Notion에서 'Markdown & CSV' 형식으로 export했는지 확인해주세요."
     except NoMarkdownError:
@@ -219,19 +218,39 @@ def _render_uploader(ip_hash: str) -> None:
     st.markdown("# 📋 포트폴리오 코치")
     st.markdown("엑스퍼트의 10가지 평가 기준으로 자동 피드백을 받아보세요.")
 
+    # 사용법 안내 (메인 영역)
+    with st.expander("📖 사용법", expanded=False):
+        col_a, col_b = st.columns(2)
+        with col_a:
+            st.markdown(
+                "**방법 1 — Notion zip 업로드 (추천)**\n"
+                "1. Notion 포트폴리오 페이지 열기\n"
+                "2. 우상단 ⋯ 메뉴 → **Export**\n"
+                "3. **Markdown & CSV** 형식 선택\n"
+                "4. 다운로드된 zip 파일을 아래에 업로드\n\n"
+                "_이미지도 함께 분석됩니다 (최대 30장)._"
+            )
+        with col_b:
+            st.markdown(
+                "**방법 2 — 마크다운 파일 직접 업로드**\n"
+                "1. 포트폴리오를 `.md` 파일로 준비\n"
+                "2. 아래에 직접 업로드\n\n"
+                "_단, 이미지 분석 없이 텍스트만 평가됩니다._"
+            )
+
     uploaded = st.file_uploader(
-        "Notion zip 파일을 끌어다 놓거나 클릭해서 선택 (최대 20MB)",
-        type=["zip"],
+        "zip 또는 md 파일을 끌어다 놓거나 클릭해서 선택 (최대 20MB)",
+        type=["zip", "md"],
         accept_multiple_files=False,
     )
     if uploaded is not None:
         if uploaded.size > MAX_UPLOAD_BYTES:
             st.error("파일이 20MB를 초과합니다.")
             return
-        zip_bytes = uploaded.read()
-        st.session_state.pf_uploaded_bytes = zip_bytes
+        file_bytes = uploaded.read()
+        st.session_state.pf_uploaded_bytes = file_bytes
         st.session_state.pf_uploaded_name = uploaded.name
-        st.session_state.pf_parsed = _try_parse_uploaded(zip_bytes)
+        st.session_state.pf_parsed = _try_parse_uploaded(file_bytes, uploaded.name)
 
     parsed = st.session_state.pf_parsed
     if parsed is not None:
