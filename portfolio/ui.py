@@ -81,13 +81,26 @@ def _render_sidebar(ip_hash: str) -> None:
     )
     st.sidebar.caption("BYOK(본인 키) 사용 시 카운트되지 않습니다.")
     st.sidebar.divider()
-    st.sidebar.caption(
-        "📚 **평가 기준 출처**\n\n"
-        "이 도구의 10가지 평가 기준은 카카오톡 오픈채팅방 "
-        "**'소프트웨어 마에스트로 준비방'** 에서 "
+    st.sidebar.markdown("### 📚 평가 기준 출처")
+    st.sidebar.info(
+        "이 도구의 **10가지 평가 기준**은 카카오톡 오픈채팅방 "
+        "**'소프트웨어 마에스트로 준비방'** 에서\n\n"
         "**엄지척 재이지(SW마에스트로 15기)** 님이 공유해주신 "
-        "포트폴리오 꿀팁을 기반으로 만들어졌습니다."
+        "포트폴리오 꿀팁을 기반으로 만들어졌습니다.",
+        icon="💡",
     )
+    st.sidebar.divider()
+    st.sidebar.markdown("### 🌟 GitHub")
+    import hashlib
+    import time as _time
+    _cache_bust = hashlib.md5(str(int(_time.time() // 300)).encode()).hexdigest()[:6]
+    st.sidebar.markdown(
+        f"[![GitHub stars](https://img.shields.io/github/stars/J-nowcow/swmaestro-mentee-tools?style=social&v={_cache_bust})](https://github.com/J-nowcow/swmaestro-mentee-tools)"
+    )
+    st.sidebar.markdown(
+        "🔗 [J-nowcow/swmaestro-mentee-tools](https://github.com/J-nowcow/swmaestro-mentee-tools)"
+    )
+    st.sidebar.caption("도움이 되셨다면 ⭐ 스타를 눌러주세요!")
 
 
 def _try_parse_uploaded(zip_bytes: bytes) -> ParsedPortfolio | None:

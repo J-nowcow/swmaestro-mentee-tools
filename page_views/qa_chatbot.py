@@ -34,7 +34,7 @@ with st.sidebar:
     st.caption("이 챗봇은 공식 사이트 정보 기반이며,\n최신 정보와 다를 수 있습니다.")
     import hashlib, time as _time
     cache_bust = hashlib.md5(str(int(_time.time() // 300)).encode()).hexdigest()[:6]
-    st.markdown(f"[![GitHub stars](https://img.shields.io/github/stars/J-nowcow/swmaestro-qa-bot?style=social&v={cache_bust})](https://github.com/J-nowcow/swmaestro-qa-bot)")
+    st.markdown(f"[![GitHub stars](https://img.shields.io/github/stars/J-nowcow/swmaestro-mentee-tools?style=social&v={cache_bust})](https://github.com/J-nowcow/swmaestro-mentee-tools)")
     st.caption("GitHub Star는 사랑입니다 :)")
 
     if st.button("대화 초기화", use_container_width=True):

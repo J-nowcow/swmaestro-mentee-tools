@@ -83,11 +83,29 @@ def compose_result_md(
 
     out.append("---")
     out.append("")
+    out.append("## 📚 평가 기준 출처")
+    out.append("")
     out.append(
-        "_📚 이 도구의 10가지 평가 기준은 카카오톡 오픈채팅방 "
+        "이 도구의 **10가지 평가 기준**은 카카오톡 오픈채팅방 "
         "**'소프트웨어 마에스트로 준비방'** 에서 "
         "**엄지척 재이지(SW마에스트로 15기)** 님이 공유해주신 "
-        "포트폴리오 꿀팁을 기반으로 만들어졌습니다._"
+        "포트폴리오 꿀팁을 기반으로 만들어졌습니다."
+    )
+    out.append("")
+    out.append(
+        "원작자의 통찰을 자동화된 도구로 옮긴 것이며, "
+        "모든 평가 기준의 본질은 원본에 있습니다. "
+        "멘티들이 더 많은 도움을 받을 수 있도록 공유해주신 점에 감사드립니다."
+    )
+    out.append("")
+    out.append("---")
+    out.append("")
+    out.append("## 🌟 GitHub")
+    out.append("")
+    out.append(
+        "이 도구는 오픈소스입니다. "
+        "[**J-nowcow/swmaestro-mentee-tools**](https://github.com/J-nowcow/swmaestro-mentee-tools) "
+        "— 도움이 되셨다면 ⭐ 스타를 눌러주세요!"
     )
     out.append("")
 
