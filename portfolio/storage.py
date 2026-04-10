@@ -72,6 +72,13 @@ def get_signed_url(path: str, expires_in: int = 3600) -> str | None:
             data = resp.json()
             signed = data.get("signedURL") or data.get("signedUrl")
             if signed:
+                # Supabase typically returns relative path like "/object/sign/..."
+                # but some versions may return a full URL — handle both.
+                if signed.startswith("http://") or signed.startswith("https://"):
+                    return signed
+                # Avoid double /storage/v1 if the path already includes it
+                if signed.startswith("/storage/v1"):
+                    return f"{base}{signed}"
                 return f"{base}/storage/v1{signed}"
     except Exception as e:
         print(f"[PORTFOLIO STORAGE] sign exception: {e}", flush=True)
@@ -153,7 +160,12 @@ def attach_result_md(
         "status": "done",
     }
     try:
-        req.patch(update_url, headers=headers, json=payload, timeout=5)
+        resp = req.patch(update_url, headers=headers, json=payload, timeout=5)
+        if resp.status_code not in (200, 204):
+            print(
+                f"[PORTFOLIO STORAGE] DB update failed {resp.status_code}: {resp.text[:200]}",
+                flush=True,
+            )
     except Exception as e:
         print(f"[PORTFOLIO STORAGE] update exception: {e}", flush=True)
 
@@ -165,7 +177,12 @@ def mark_error(storage_path: str, error: str) -> None:
     update_url = f"{base}/rest/v1/{TABLE_SUBMISSIONS}?storage_path=eq.{storage_path}"
     headers = {**_headers(), "Content-Type": "application/json", "Prefer": "return=minimal"}
     try:
-        req.patch(update_url, headers=headers, json={"status": "error", "error": error[:500]}, timeout=5)
+        resp = req.patch(update_url, headers=headers, json={"status": "error", "error": error[:500]}, timeout=5)
+        if resp.status_code not in (200, 204):
+            print(
+                f"[PORTFOLIO STORAGE] mark_error failed {resp.status_code}",
+                flush=True,
+            )
     except Exception:
         pass
 
