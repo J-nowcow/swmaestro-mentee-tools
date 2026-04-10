@@ -41,20 +41,35 @@ def render() -> None:
         )
         if target:
             col_a, col_b = st.columns(2)
+            col_a, col_b, col_c, col_d = st.columns(4)
             with col_a:
-                if st.button("📦 zip 다운로드 URL 생성", key="dl_zip_btn"):
+                if st.button("📦 zip", key="dl_zip_btn"):
                     url = storage.get_signed_url(f"{target}/original.zip")
                     if url:
-                        st.markdown(f"[🔗 zip 다운로드]({url})")
+                        st.markdown(f"[🔗 zip]({url})")
                     else:
-                        st.error("URL 생성 실패")
+                        st.error("실패")
             with col_b:
-                if st.button("📄 result.md 다운로드 URL 생성", key="dl_md_btn"):
+                if st.button("📄 result.md", key="dl_md_btn"):
                     url = storage.get_signed_url(f"{target}/result.md")
                     if url:
-                        st.markdown(f"[🔗 md 다운로드]({url})")
+                        st.markdown(f"[🔗 md]({url})")
                     else:
-                        st.error("URL 생성 실패")
+                        st.error("실패")
+            with col_c:
+                if st.button("📊 평가 JSON", key="dl_eval_btn"):
+                    url = storage.get_signed_url(f"{target}/evaluation.json")
+                    if url:
+                        st.markdown(f"[🔗 eval]({url})")
+                    else:
+                        st.error("실패")
+            with col_d:
+                if st.button("🎤 질문 JSON", key="dl_qs_btn"):
+                    url = storage.get_signed_url(f"{target}/questions.json")
+                    if url:
+                        st.markdown(f"[🔗 questions]({url})")
+                    else:
+                        st.error("실패")
 
     st.markdown("### 통계")
     total = len(rows) if rows else 0

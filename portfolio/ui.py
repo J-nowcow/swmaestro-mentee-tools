@@ -206,6 +206,8 @@ def _run_analysis(
         used_fallback=used_fallback,
         tokens_input=tokens_in,
         tokens_output=tokens_out,
+        evaluation_json={"overall": ev.overall, "criteria": ev.criteria},
+        questions_json={"categories": qs.categories} if qs else None,
     )
 
     st.session_state.pf_result_md = result_md

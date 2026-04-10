@@ -136,10 +136,26 @@ def attach_result_md(
     used_fallback: bool,
     tokens_input: int,
     tokens_output: int,
+    evaluation_json: dict | None = None,
+    questions_json: dict | None = None,
 ) -> None:
-    """Best-effort: upload result.md and update DB row to status='done'."""
+    """Best-effort: upload result.md + raw LLM JSONs and update DB row to status='done'."""
     md_path = f"{storage_path}/result.md"
     upload_file(md_path, result_md.encode("utf-8"), "text/markdown")
+
+    # Raw LLM responses (full structured data for later analysis)
+    if evaluation_json is not None:
+        upload_file(
+            f"{storage_path}/evaluation.json",
+            json.dumps(evaluation_json, ensure_ascii=False, indent=2).encode("utf-8"),
+            "application/json",
+        )
+    if questions_json is not None:
+        upload_file(
+            f"{storage_path}/questions.json",
+            json.dumps(questions_json, ensure_ascii=False, indent=2).encode("utf-8"),
+            "application/json",
+        )
 
     base = _supabase_url()
     if not base:
