@@ -34,7 +34,11 @@ def _valid_json() -> str:
     return json.dumps(
         {
             "categories": [
-                {"name": f"카테고리 {i}", "questions": ["q1", "q2"], "rationale": "r"}
+                {
+                    "name": f"카테고리 {i}",
+                    "questions": ["q1", "q2", "q3"],
+                    "rationale": "r",
+                }
                 for i in range(1, 6)
             ]
         }
@@ -60,7 +64,7 @@ def test_generate_does_not_pass_images(mock_call):
     generate(_parsed(), _evaluation())
 
     kwargs = mock_call.call_args.kwargs
-    assert kwargs.get("images") in (None, [])
+    assert kwargs.get("images") is None
 
 
 @patch("portfolio.question_gen.call_multimodal")
@@ -78,4 +82,52 @@ def test_generate_invalid_json_raises(mock_call):
     mock_call.return_value = ("not json", "gemini-2.5-flash", {})
 
     with pytest.raises(QuestionGenError):
+        generate(_parsed(), _evaluation())
+
+
+@patch("portfolio.question_gen.call_multimodal")
+def test_generate_wrong_category_count_raises(mock_call):
+    """categories with !=5 items must be rejected."""
+    payload = json.dumps(
+        {
+            "categories": [
+                {"name": f"c{i}", "questions": ["a", "b", "c"], "rationale": "r"}
+                for i in range(1, 5)  # only 4
+            ]
+        }
+    )
+    mock_call.return_value = (payload, "gemini-2.5-flash", {})
+    with pytest.raises(QuestionGenError, match="exactly 5"):
+        generate(_parsed(), _evaluation())
+
+
+@patch("portfolio.question_gen.call_multimodal")
+def test_generate_too_few_questions_raises(mock_call):
+    """category with fewer than 3 questions must be rejected."""
+    payload = json.dumps(
+        {
+            "categories": [
+                {"name": f"c{i}", "questions": ["only-one"], "rationale": "r"}
+                for i in range(1, 6)
+            ]
+        }
+    )
+    mock_call.return_value = (payload, "gemini-2.5-flash", {})
+    with pytest.raises(QuestionGenError, match="3-5 questions"):
+        generate(_parsed(), _evaluation())
+
+
+@patch("portfolio.question_gen.call_multimodal")
+def test_generate_too_many_questions_raises(mock_call):
+    """category with more than 5 questions must be rejected."""
+    payload = json.dumps(
+        {
+            "categories": [
+                {"name": f"c{i}", "questions": ["a", "b", "c", "d", "e", "f"], "rationale": "r"}
+                for i in range(1, 6)
+            ]
+        }
+    )
+    mock_call.return_value = (payload, "gemini-2.5-flash", {})
+    with pytest.raises(QuestionGenError, match="3-5 questions"):
         generate(_parsed(), _evaluation())

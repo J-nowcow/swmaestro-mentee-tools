@@ -23,12 +23,20 @@ class QuestionResult:
 
 
 def _validate(data: dict) -> None:
-    if "categories" not in data or not isinstance(data["categories"], list):
-        raise QuestionGenError("missing or invalid 'categories'")
-    for cat in data["categories"]:
+    cats = data.get("categories")
+    if not isinstance(cats, list) or len(cats) != 5:
+        got = len(cats) if isinstance(cats, list) else "non-list"
+        raise QuestionGenError(f"'categories' must have exactly 5 items, got {got}")
+    for cat in cats:
         for k in ("name", "questions", "rationale"):
             if k not in cat:
                 raise QuestionGenError(f"category missing '{k}'")
+        questions = cat["questions"]
+        if not isinstance(questions, list) or not (3 <= len(questions) <= 5):
+            q_count = len(questions) if isinstance(questions, list) else "non-list"
+            raise QuestionGenError(
+                f"category '{cat.get('name')}' must have 3-5 questions, got {q_count}"
+            )
 
 
 def _summarize_evaluation(ev: EvaluationResult) -> str:
