@@ -1,6 +1,12 @@
 # SW마에스트로 멘티 도구 (SWM Mentee Tools)
 
+[![GitHub stars](https://img.shields.io/github/stars/J-nowcow/swmaestro-mentee-tools?style=social)](https://github.com/J-nowcow/swmaestro-mentee-tools)
+
+> 🌐 **Live demo**: **[swm-mentee-tools.streamlit.app](https://swm-mentee-tools.streamlit.app)**
+
 SW마에스트로 멘티들을 위한 도구 모음입니다. Streamlit으로 제작된 단일 웹앱이며, 두 가지 기능을 제공합니다.
+
+도움이 되셨다면 ⭐ **GitHub 스타**를 눌러주세요!
 
 ## 기능
 
