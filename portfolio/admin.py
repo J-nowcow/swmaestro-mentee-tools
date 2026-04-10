@@ -4,9 +4,22 @@ No password gate, no expander — caller is responsible for those.
 """
 from __future__ import annotations
 
+from datetime import datetime, timezone, timedelta
+
 import streamlit as st
 
 from portfolio import storage
+
+_KST = timezone(timedelta(hours=9))
+
+
+def _to_kst(ts_str: str) -> str:
+    """Convert ISO timestamp string (UTC from Supabase) to KST display string."""
+    try:
+        dt = datetime.fromisoformat(ts_str.replace("Z", "+00:00"))
+        return dt.astimezone(_KST).strftime("%Y-%m-%d %H:%M:%S")
+    except Exception:
+        return ts_str[:19] if ts_str else ""
 
 
 def render() -> None:
@@ -19,7 +32,7 @@ def render() -> None:
         for r in rows:
             display.append(
                 {
-                    "시간": (r.get("created_at") or "")[:19],
+                    "시간": _to_kst(r.get("created_at") or ""),
                     "페이지": r.get("page_count"),
                     "이미지": r.get("image_count"),
                     "잘림": r.get("image_truncated"),

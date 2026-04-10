@@ -1,7 +1,18 @@
 """통합 관리자 페이지 본문 - Q&A 챗봇 + 포트폴리오 코치"""
 import os
+from datetime import datetime, timezone, timedelta
 
 import streamlit as st
+
+_KST = timezone(timedelta(hours=9))
+
+
+def _to_kst(ts_str: str) -> str:
+    try:
+        dt = datetime.fromisoformat(ts_str.replace("Z", "+00:00"))
+        return dt.astimezone(_KST).strftime("%Y-%m-%d %H:%M:%S")
+    except Exception:
+        return ts_str[:19] if ts_str else ""
 
 st.title("🔒 관리자 대시보드")
 
@@ -41,7 +52,7 @@ with tab_fb:
             with st.container(border=True):
                 col_time, col_status = st.columns([4, 1])
                 with col_time:
-                    st.caption(f"🕐 {(r.get('created_at') or '')[:19]}")
+                    st.caption(f"🕐 {_to_kst(r.get('created_at') or '')}")
                 with col_status:
                     status = r.get("status", "new")
                     if status == "new":
@@ -69,7 +80,7 @@ with tab_qa:
         logs = db.select("logs", {"order": "created_at.desc"}, limit=50)
         if logs:
             st.dataframe(
-                [{"시간": l.get("created_at", "")[:19], "세션": l.get("session_id", ""),
+                [{"시간": _to_kst(l.get("created_at", "")), "세션": l.get("session_id", ""),
                   "질문": l.get("question", ""), "캐시": l.get("cached", False)} for l in logs],
                 use_container_width=True,
             )
@@ -80,7 +91,7 @@ with tab_qa:
         fb = db.select("feedback", {"order": "created_at.desc"}, limit=50)
         if fb:
             st.dataframe(
-                [{"시간": f.get("created_at", "")[:19], "세션": f.get("session_id", ""),
+                [{"시간": _to_kst(f.get("created_at", "")), "세션": f.get("session_id", ""),
                   "질문": f.get("question", ""), "피드백": f.get("feedback_type", "")} for f in fb],
                 use_container_width=True,
             )
