@@ -69,7 +69,7 @@ def _render_sidebar(ip_hash: str) -> None:
     daily = ratelimit.get_today_status()
     ipst = ratelimit.get_ip_status(ip_hash)
     st.sidebar.markdown(
-        f"- 무료 분석: **{daily['daily_used']} / {daily['daily_cap']}**\n"
+        f"- 무료 분석: **{daily['daily_used'] // 2} / {daily['daily_cap'] // 2}**\n"
         f"- 본인 분석: **{ipst['ip_used']} / {ipst['ip_limit']}**"
     )
     st.sidebar.caption("BYOK(본인 키) 사용 시 카운트되지 않습니다.")
